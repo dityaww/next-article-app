@@ -24,12 +24,13 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import axiosInstance from "@/lib/axios"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import Image from "next/image"
 import moment from "moment"
 import { PaginationControl } from "@/components/ui/pagination"
+import DeleteArticle from "./components/delete-article"
 
 export default function AdminArticle() {
     const [query, setQuery] = useState<string>("")
@@ -37,6 +38,8 @@ export default function AdminArticle() {
     const [currentPage, setCurrentPage] = useState<number>(1);
     const [totalPage, setTotalPage] = useState<number>(0)
     const [totalItems, setTotalItems] = useState<number>(0);
+
+    const queryClient = useQueryClient()
 
     const { data: categories } = useQuery({
         queryKey: ['category'],
@@ -147,9 +150,12 @@ export default function AdminArticle() {
                                         <TableCell className="text-slate-600 text-center px-4 py-3 text-sm leading-5">{moment(data?.createdAt).format("MMMM D, YYYY HH:mm:ss")}</TableCell>
                                         <TableCell className="px-4 py-3">
                                             <div className="flex gap-3 justify-center items-center">
-                                                <Link href="#" className="hover:underline text-sm leading-5 font-normal text-blue-600">Preview</Link>
-                                                <Link href={`/admin/article/edit/${data?.id}`} className="hover:underline text-sm leading-5 font-normal text-blue-600">Edit</Link>
-                                                <Link href="#" className="hover:underline text-sm leading-5 font-normal text-red-500">Delete</Link>
+                                                <Link href="#" className="hover:underline text-sm leading-5 font-medium text-blue-600">Preview</Link>
+                                                <Link href={`/admin/article/edit/${data?.id}`} className="hover:underline text-sm leading-5 font-medium text-blue-600">Edit</Link>
+                                                {/* <Link href="#" className="hover:underline text-sm leading-5 font-medium text-red-500">Delete</Link> */}
+                                                <DeleteArticle article={data} onSuccess={() => {
+                                                    queryClient.invalidateQueries({ queryKey: ['articles']})
+                                                }} />
                                             </div>
                                         </TableCell>
                                     </TableRow>
