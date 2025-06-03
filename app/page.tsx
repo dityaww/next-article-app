@@ -1,103 +1,230 @@
+"use client"
+
 import Image from "next/image";
+import WhiteLogo from '@/app/assets/white-logo.png';
+import { useQuery } from "@tanstack/react-query";
+import axiosInstance from "@/lib/axios";
+import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton"
+import { useCallback, useEffect, useState } from "react";
+import { PaginationControl } from "@/components/ui/pagination";
+import { debounce } from "lodash"
+
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
+import { useProtectedPage } from "./hooks/useProtectedPage";
+import { redirect } from "next/navigation";
+import moment from "moment";
+import { getProfile, useAuth } from "./stores/authStore";
+
+interface ArticleProps {
+  id: string,
+  title: string,
+  content: string,
+  userId: string,
+  categoryId: string,
+  createdAt: string
+  imageUrl: string,
+  category: {
+    id: string,
+    name: string,
+    userId: string
+  },
+  user: {
+    id: string,
+    username: string,
+    role: string
+  }
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPage, setTotalPage] = useState<number>(0)
+  const [totalItems, setTotalItems] = useState<number>(0);
+  const [pageSize, setpageSize] = useState<number>(9)
+  const [query, setQuery] = useState<string>("")
+  const [searchQueries, setSearchQueries] = useState<string>("")
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const { setProfile, username } = getProfile()
+  const { token } = useAuth()
+
+  const { data: profile } = useQuery({
+    queryKey: ['get-profiles'],
+    queryFn: async () => {
+      try {
+        const { data } = await axiosInstance("/auth/profile", {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        })
+        setProfile(data?.username, data?.role)
+        return data
+      } catch (error) {
+        console.log(error)
+      }
+    }
+})
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['articles', currentPage, searchQueries],
+    queryFn: async () => {
+      const { data } = await axiosInstance.get(`/articles?limit=${pageSize}&page=${currentPage}&title=${searchQueries}`);
+      setTotalItems(data?.total)
+      setTotalPage(Math.ceil(data.total / data.limit))
+      return data;
+    },
+  })
+  
+  const { data: categories } = useQuery({
+    queryKey: ['category'],
+    queryFn: async () => {
+      const { data } = await axiosInstance.get(`/categories`);
+      return data;
+    },
+  })
+
+  const handleSearch = (value: string) => {
+    setSearchQueries(value)
+  };
+
+  const debouncedSearch = useCallback(debounce(handleSearch, 500), []);
+
+  useEffect(() => {
+    if (query) {
+      debouncedSearch(query);
+    }
+    return () => {
+      debouncedSearch.cancel(); 
+    };
+  }, [query, debouncedSearch]);
+
+  return (
+    <main className="">
+      {/* HERO SECTION */}
+      <div className="relative h-[600px] bg-[url('/hero-image.jpg')] bg-center bg-cover">
+        <div className="absolute bg-[#2563EBDB] w-full h-full"></div>
+        <div className="relative z-10 text-white">
+          {/* NAVIGATION BAR */}
+          <nav className="flex justify-between md:py-8 py-4 md:px-[60px] px-5">
+            <div className="flex items-center">
+              <Image src={WhiteLogo} alt="white-logo" />
+            </div>
+            <div className="flex items-center gap-1.5">
+              <div className="w-8 h-8 bg-blue-200 rounded-full"></div>
+              <div className="font-medium text-gap-4 leading-6 underline hidden md:block">{username}</div>
+            </div>
+          </nav>
+
+          {/* CONTENT */}
+          <section className="flex justify-center mt-32">
+            <div className="flex flex-col items-center gap-10 lg:w-[730px]">
+              <div className="flex flex-col gap-3">
+                <div className="font-bold md:leading-6 leading-5 md:text-base text-sm text-center">Blog genzet</div>
+                <div className="font-medium md:text-5xl text-4xl md:leading-12 leading-10 text-center">The Journal : Design Resources, Interviews, and Industry News</div>
+                <div className="font-normal md:text-2xl text-xl md:leading-8 leading-7 text-center">Your daily dose of design insights!</div>
+              </div>
+              <div className="text-gray-900 flex gap-2 items-center">
+                <Select>
+                  <SelectTrigger className="bg-white w-[180px]">
+                    <SelectValue placeholder="Select a category"/>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectLabel>Category</SelectLabel>
+                      { categories?.data?.map((item: any, index: number) => (
+                        <SelectItem className="text-black" value={item.name} key={index}>{item.name}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                
+                <div className="border flex items-center gap-1.5 bg-white px-3 rounded-md">
+                  <Search size={20} className="text-slate-400" />
+                  <Input type="text" placeholder="Search articles" value={query} onChange={({ target }) => setQuery(target.value)} className="font-normal text-sm !shadow-none !border-none !ring-0 leading-5 text-gray-900 placeholder:text-slate-400"/>
+                </div>
+              </div>
+            </div>
+          </section>
+
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      </div>
+
+      {/* CONTENT */}
+      <div className="flex flex-col gap-6 lg:px-[100px] px-5 pt-10 md:pb-[100px] pb-[60px]">
+        {/* Dummy datas */}
+        <div className="">Showing: {pageSize > totalItems ? totalItems : pageSize} of {totalItems}</div>
+
+        {/* API CALLS */}
+        <div className="">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 md:gap-x-10 md:gap-y-[60px] gap-10">    
+            {isLoading ? (
+              Array.from({ length: pageSize }).map((_, i) => (
+                <div className="flex flex-col space-y-3" key={i}>
+                  <Skeleton className="h-80 w-full rounded-xl" />
+                  <div className="space-y-2">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-10 w-full" />
+                    <Skeleton className="h-5 w-full" />
+                    <Skeleton className="h-5 w-1/2" />
+                  </div>
+                </div>
+              ))
+            ) : (
+              data !== undefined && data?.data?.length > 0 && data?.data?.map((item: ArticleProps, index: number) => (
+                <div className="flex flex-col gap-4 overflow-hidden" key={index}>
+                  <Link href={`/article/${item.id}`}>
+                    <div className="relative w-full h-80 rounded-[12px] overflow-hidden">
+                      <Image src={item.imageUrl === null ? WhiteLogo : item.imageUrl} alt="article-image" className="object-cover" fill sizes="(max-width: 400px)" />
+                    </div>
+                  </Link>
+
+                  <div className="flex flex-col gap-2">
+                    <div className="text-slate-600 text-xs leading-4 md:leading-5 font-normal">
+                      {moment(item?.createdAt).format("MMMM D, YYYY")}
+                    </div>
+                    
+                    <div className="text-base md:text-lg font-semibold leading-6 md:leading-7">
+                      {item.title}
+                    </div>
+                    
+                    <div className="md:text-base md:leading-6 text-sm leading-5 truncate">
+                      {item.content}
+                    </div>
+
+                    <div className="flex gap-[8px]">
+                      <div className="text-xs leading-4 md:text-sm md:leading-5 px-3 py-1 text-blue-900 font-normal bg-blue-200 rounded-[100px]">{item.category.name}</div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="mt-[60px] flex justify-center">
+            <PaginationControl 
+              currentPage={currentPage}
+              totalPages={totalPage}
+              onPageChange={(pages) => setCurrentPage(pages)}
+            />
+          </div>
+        </div>
+      </div>
+
+      <footer className="bg-[#2563EBDB] h-[100px] flex items-center justify-center">
+        <div className="flex flex-col md:flex-row gap-2 md:gap-4 items-center">
+            <Image src={WhiteLogo} alt="white-logo" />
+            <div className="text-white text-sm md:text-base leading-5 md:leading-6 font-normal">&copy; 2025 Blog genzet. All rights reserved.</div>
+        </div>
       </footer>
-    </div>
+    </main>
   );
 }
+
