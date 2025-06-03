@@ -55,7 +55,13 @@ export default function LoginPage() {
                     </div>
                 ))
 
-                router.push('/')
+                if (role === "User") {
+                    router.push('/')
+                }
+
+                if (role === "Admin") {
+                    router.push('/admin/article')
+                }
             }
         } catch (error: any) {
             console.log(error)
@@ -108,7 +114,7 @@ export default function LoginPage() {
                                 <FormControl>
                                     <div className="border flex items-center rounded-md shadow-xs focus:outline outline-gray-300">
                                         <Input placeholder="Input password" className="border-none shadow-none !ring-0 " type={passwordShown ? "text" : "password"} {...field} />
-                                        <Button className="mx-0.5 hover:bg-transparent" variant="ghost" onClick={() => setPasswordShown(!passwordShown)}>
+                                        <Button className="mx-0.5 hover:bg-transparent" variant="ghost" type="button" onClick={() => setPasswordShown(!passwordShown)}>
                                             {passwordShown ? 
                                                 <EyeOff className="text-gray-400" />
                                             :
