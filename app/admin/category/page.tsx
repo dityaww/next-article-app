@@ -47,8 +47,6 @@ export default function AdminCategory() {
         
     })
 
-    console.log(categories)
-
     const handleSearch = (value: string) => {
         setSearchQueries(value)
     };
