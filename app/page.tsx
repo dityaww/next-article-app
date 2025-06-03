@@ -20,11 +20,18 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { BadgeCheck, Search } from "lucide-react";
 import { useProtectedPage } from "./hooks/useProtectedPage";
 import { redirect } from "next/navigation";
 import moment from "moment";
 import { getProfile, useAuth } from "./stores/authStore";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { toast } from "sonner";
 
 interface ArticleProps {
   id: string,
@@ -55,7 +62,13 @@ export default function Home() {
   const [searchQueries, setSearchQueries] = useState<string>("")
 
   const { setProfile, username } = getProfile()
-  const { token } = useAuth()
+  const { token, clearAuth } = useAuth()
+
+  useEffect(() => {
+    if (!token) {
+      redirect('/login')
+    }
+  }, [token])
 
   const { data: profile } = useQuery({
     queryKey: ['get-profiles'],
@@ -118,9 +131,32 @@ export default function Home() {
             <div className="flex items-center">
               <Image src={WhiteLogo} alt="white-logo" />
             </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-8 h-8 bg-blue-200 rounded-full"></div>
-              <div className="font-medium text-gap-4 leading-6 underline hidden md:block">{username}</div>
+            <div>
+              <DropdownMenu>
+                <DropdownMenuTrigger>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-8 h-8 bg-blue-200 rounded-full"></div>
+                    <div className="font-medium text-gap-4 leading-6 underline hidden md:block">{username}</div>
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem>
+                    <Link href="/profile">My Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => {
+                    clearAuth()
+                    toast.custom((t) => (
+                      <div className="border-s-4 border-teal-600 flex items-center gap-4 px-4 py-3 bg-white rounded-lg w-[20rem]">
+                          <BadgeCheck className="text-emerald-600" />
+                          <div className="">
+                              <p className="font-semibold font-sans text-base text-gray-700">Success</p>
+                              <p className="text-sm font-normal text-gray-500">Logout Success</p>
+                          </div>
+                      </div>
+                    ))
+                  }}>Logout</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </nav>
 
