@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/sidebar"
 import Link from "next/link";
 import { Header } from "./components/header";
+import { Button } from "@/components/ui/button";
+import LogoutAccount from "./components/logout";
 
 export const metadata: Metadata = {
   title: "Article Page",
@@ -60,6 +62,13 @@ export default function AdminLayout({
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                   ))}
+                  <SidebarMenuItem>
+                    <SidebarMenuButton className="hover:bg-blue-500 hover:cursor-pointer">
+                      <div className="w-full">
+                        <LogoutAccount />
+                      </div>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
                 </SidebarMenu>
               </SidebarGroupContent>
             </SidebarGroup>
